@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Weather App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .weather-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .dark-mode {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        }
+        
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid white;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .forecast-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .weather-icon {
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+        
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 p-4">
+    <div class="container mx-auto max-w-4xl">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">🌤️ Advanced Weather</h1>
+            <p class="text-white/80">Real-time weather updates for your location</p>
+        </div>
+
+        <!-- Theme Toggle -->
+        <div class="flex justify-center mb-6">
+            <button id="themeToggle" class="glass-effect text-white px-4 py-2 rounded-full hover:bg-white/20 transition-all duration-300">
+                🌙 Dark Mode
+            </button>
+        </div>
+
+        <!-- Location Input -->
+        <div class="glass-effect rounded-2xl p-6 mb-6">
+            <div class="flex flex-col sm:flex-row gap-4">
+                <input 
+                    type="text" 
+                    id="cityInput" 
+                    placeholder="Enter city name (optional)" 
+                    class="flex-1 px-4 py-3 rounded-xl bg-white/20 text-white placeholder-white/70 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50"
+                >
+                <button 
+                    id="searchBtn" 
+                    class="px-6 py-3 bg-white/20 hover:bg-white/30 text-white rounded-xl transition-all duration-300 font-medium"
+                >
+                    🔍 Search
+                </button>
+                <button 
+                    id="locationBtn" 
+                    class="px-6 py-3 bg-white/20 hover:bg-white/30 text-white rounded-xl transition-all duration-300 font-medium"
+                >
+                    📍 Use My Location
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="hidden text-center py-12">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-white text-lg">Getting weather data...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="hidden error-message rounded-2xl p-6 mb-6">
+            <div class="text-center">
+                <p class="text-red-300 text-lg font-medium mb-2">⚠️ Something went wrong</p>
+                <p id="errorText" class="text-red-200"></p>
+            </div>
+        </div>
+
+        <!-- Current Weather Card -->
+        <div id="weatherCard" class="hidden weather-card rounded-3xl p-8 mb-8 text-white">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Main Weather Info -->
+                <div class="text-center lg:text-left">
+                    <div class="flex items-center justify-center lg:justify-start mb-4">
+                        <img id="weatherIcon" src="" alt="" class="weather-icon w-20 h-20 mr-4">
+                        <div>
+                            <h2 id="cityName" class="text-3xl font-bold mb-1"></h2>
+                            <p id="weatherDescription" class="text-xl capitalize opacity-90"></p>
+                        </div>
+                    </div>
+                    <div class="text-6xl font-light mb-2">
+                        <span id="temperature"></span>°C
+                    </div>
+                    <p class="text-lg opacity-80">Feels like <span id="feelsLike"></span>°C</p>
+                </div>
+
+                <!-- Weather Details -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="glass-effect rounded-2xl p-4 text-center">
+                        <div class="text-2xl mb-2">💧</div>
+                        <div class="text-sm opacity-80">Humidity</div>
+                        <div class="text-xl font-semibold" id="humidity"></div>
+                    </div>
+                    <div class="glass-effect rounded-2xl p-4 text-center">
+                        <div class="text-2xl mb-2">💨</div>
+                        <div class="text-sm opacity-80">Wind Speed</div>
+                        <div class="text-xl font-semibold" id="windSpeed"></div>
+                    </div>
+                    <div class="glass-effect rounded-2xl p-4 text-center">
+                        <div class="text-2xl mb-2">👁️</div>
+                        <div class="text-sm opacity-80">Visibility</div>
+                        <div class="text-xl font-semibold" id="visibility"></div>
+                    </div>
+                    <div class="glass-effect rounded-2xl p-4 text-center">
+                        <div class="text-2xl mb-2">🌡️</div>
+                        <div class="text-sm opacity-80">Pressure</div>
+                        <div class="text-xl font-semibold" id="pressure"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 text-center opacity-80">
+                <p>Last updated: <span id="lastUpdated"></span></p>
+            </div>
+        </div>
+
+        <!-- 5-Day Forecast -->
+        <div id="forecastSection" class="hidden">
+            <h3 class="text-2xl font-bold text-white mb-6 text-center">5-Day Forecast</h3>
+            <div id="forecastContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <!-- Forecast cards will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class WeatherApp {
+            constructor() {
+                this.API_KEY = 'demo_key'; // Note: This is a demo key - users need to get their own from OpenWeatherMap
+                this.isDarkMode = false;
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.loadStoredLocation();
+                this.showDemoMessage();
+            }
+
+            bindEvents() {
+                document.getElementById('locationBtn').addEventListener('click', () => this.getCurrentLocation());
+                document.getElementById('searchBtn').addEventListener('click', () => this.searchByCity());
+                document.getElementById('cityInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.searchByCity();
+                });
+                document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
+            }
+
+            showDemoMessage() {
+                setTimeout(() => {
+                    this.displaySampleWeather();
+                }, 2000);
+            }
+
+            getCurrentLocation() {
+                if (!navigator.geolocation) {
+                    this.showError('Geolocation is not supported by this browser.');
+                    return;
+                }
+
+                this.showLoading();
+                
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const { latitude, longitude } = position.coords;
+                        this.fetchWeatherByCoords(latitude, longitude);
+                        this.storeLocation(latitude, longitude);
+                    },
+                    (error) => {
+                        this.hideLoading();
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                this.showError('Location access denied. Please enable location services or search by city name.');
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                this.showError('Location information unavailable. Please try searching by city name.');
+                                break;
+                            case error.TIMEOUT:
+                                this.showError('Location request timed out. Please try again.');
+                                break;
+                            default:
+                                this.showError('An unknown error occurred while getting location.');
+                                break;
+                        }
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 300000 // 5 minutes
+                    }
+                );
+            }
+
+            async searchByCity() {
+                const city = document.getElementById('cityInput').value.trim();
+                if (!city) {
+                    this.showError('Please enter a city name.');
+                    return;
+                }
+
+                this.showLoading();
+                
+                try {
+                    // First get coordinates from city name
+                    const geoResponse = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${this.API_KEY}`);
+                    
+                    if (!geoResponse.ok) {
+                        throw new Error('City not found');
+                    }
+                    
+                    const geoData = await geoResponse.json();
+                    
+                    if (geoData.length === 0) {
+                        throw new Error('City not found. Please check the spelling and try again.');
+                    }
+                    
+                    const { lat, lon } = geoData[0];
+                    await this.fetchWeatherByCoords(lat, lon);
+                    this.storeLocation(lat, lon, city);
+                    
+                } catch (error) {
+                    this.hideLoading();
+                    this.showError(error.message);
+                }
+            }
+
+            async fetchWeatherByCoords(lat, lon) {
+                try {
+                    // Fetch current weather
+                    const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${this.API_KEY}&units=metric`);
+                    
+                    if (!weatherResponse.ok) {
+                        throw new Error('Weather data unavailable');
+                    }
+                    
+                    const weatherData = await weatherResponse.json();
+                    
+                    // Fetch 5-day forecast
+                    const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${this.API_KEY}&units=metric`);
+                    const forecastData = forecastResponse.ok ? await forecastResponse.json() : null;
+                    
+                    this.displayWeather(weatherData);
+                    if (forecastData) {
+                        this.displayForecast(forecastData);
+                    }
+                    
+                    this.hideLoading();
+                    this.hideError();
+                    
+                } catch (error) {
+                    this.hideLoading();
+                    this.showError('Failed to fetch weather data. Please try again.');
+                }
+            }
+
+            displaySampleWeather() {
+                // Sample data for demonstration
+                const sampleData = {
+                    name: 'chennai',
+                    main: {
+                        temp: 22,
+                        feels_like: 24,
+                        humidity: 65,
+                        pressure: 1013
+                    },
+                    weather: [{
+                        main: 'Clear',
+                        description: 'clear sky',
+                        icon: '01d'
+                    }],
+                    wind: {
+                        speed: 3.5
+                    },
+                    visibility: 10000
+                };
+                
+                this.displayWeather(sampleData);
+                this.displaySampleForecast();
+                this.hideLoading();
+            }
+
+            displayWeather(data) {
+                document.getElementById('cityName').textContent = data.name;
+                document.getElementById('temperature').textContent = Math.round(data.main.temp);
+                document.getElementById('feelsLike').textContent = Math.round(data.main.feels_like);
+                document.getElementById('weatherDescription').textContent = data.weather[0].description;
+                document.getElementById('humidity').textContent = `${data.main.humidity}%`;
+                document.getElementById('windSpeed').textContent = `${data.wind.speed} m/s`;
+                document.getElementById('visibility').textContent = `${(data.visibility / 1000).toFixed(1)} km`;
+                document.getElementById('pressure').textContent = `${data.main.pressure} hPa`;
+                document.getElementById('weatherIcon').src = `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
+                document.getElementById('weatherIcon').alt = data.weather[0].description;
+                document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+                
+                document.getElementById('weatherCard').classList.remove('hidden');
+            }
+
+            displaySampleForecast() {
+                const sampleForecast = [
+                    { day: 'Today', temp: 22, icon: '01d', desc: 'Clear' },
+                    { day: 'Tomorrow', temp: 25, icon: '02d', desc: 'Partly Cloudy' },
+                    { day: 'Wednesday', temp: 20, icon: '10d', desc: 'Light Rain' },
+                    { day: 'Thursday', temp: 18, icon: '04d', desc: 'Cloudy' },
+                    { day: 'Friday', temp: 23, icon: '01d', desc: 'Sunny' }
+                ];
+
+                const container = document.getElementById('forecastContainer');
+                container.innerHTML = '';
+
+                sampleForecast.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'forecast-card rounded-2xl p-4 text-center text-white';
+                    card.innerHTML = `
+                        <div class="font-medium mb-2">${item.day}</div>
+                        <img src="https://openweathermap.org/img/wn/${item.icon}.png" alt="${item.desc}" class="w-12 h-12 mx-auto mb-2">
+                        <div class="text-lg font-semibold">${item.temp}°</div>
+                        <div class="text-sm opacity-80">${item.desc}</div>
+                    `;
+                    container.appendChild(card);
+                });
+
+                document.getElementById('forecastSection').classList.remove('hidden');
+            }
+
+            displayForecast(data) {
+                const container = document.getElementById('forecastContainer');
+                container.innerHTML = '';
+                
+                // Get daily forecasts (every 8th item = 24 hours)
+                const dailyForecasts = data.list.filter((item, index) => index % 8 === 0).slice(0, 5);
+                
+                dailyForecasts.forEach((item, index) => {
+                    const date = new Date(item.dt * 1000);
+                    const dayName = index === 0 ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' });
+                    
+                    const card = document.createElement('div');
+                    card.className = 'forecast-card rounded-2xl p-4 text-center text-white';
+                    card.innerHTML = `
+                        <div class="font-medium mb-2">${dayName}</div>
+                        <img src="https://openweathermap.org/img/wn/${item.weather[0].icon}.png" alt="${item.weather[0].description}" class="w-12 h-12 mx-auto mb-2">
+                        <div class="text-lg font-semibold">${Math.round(item.main.temp)}°</div>
+                        <div class="text-sm opacity-80">${item.weather[0].main}</div>
+                    `;
+                    container.appendChild(card);
+                });
+                
+                document.getElementById('forecastSection').classList.remove('hidden');
+            }
+
+            toggleTheme() {
+                this.isDarkMode = !this.isDarkMode;
+                const body = document.body;
+                const toggle = document.getElementById('themeToggle');
+                
+                if (this.isDarkMode) {
+                    body.className = body.className.replace('from-blue-400 via-purple-500 to-pink-500', 'from-gray-800 via-gray-900 to-black');
+                    toggle.textContent = '☀️ Light Mode';
+                } else {
+                    body.className = body.className.replace('from-gray-800 via-gray-900 to-black', 'from-blue-400 via-purple-500 to-pink-500');
+                    toggle.textContent = '🌙 Dark Mode';
+                }
+                
+                localStorage.setItem('darkMode', this.isDarkMode);
+            }
+
+            storeLocation(lat, lon, city = null) {
+                const locationData = { lat, lon, city, timestamp: Date.now() };
+                localStorage.setItem('lastLocation', JSON.stringify(locationData));
+            }
+
+            loadStoredLocation() {
+                const stored = localStorage.getItem('lastLocation');
+                if (stored) {
+                    const data = JSON.parse(stored);
+                    // Auto-load if less than 1 hour old
+                    if (Date.now() - data.timestamp < 3600000) {
+                        setTimeout(() => {
+                            this.fetchWeatherByCoords(data.lat, data.lon);
+                        }, 1000);
+                    }
+                }
+                
+                // Load theme preference
+                const darkMode = localStorage.getItem('darkMode');
+                if (darkMode === 'true') {
+                    this.toggleTheme();
+                }
+            }
+
+            showLoading() {
+                document.getElementById('loadingState').classList.remove('hidden');
+                document.getElementById('weatherCard').classList.add('hidden');
+                document.getElementById('forecastSection').classList.add('hidden');
+            }
+
+            hideLoading() {
+                document.getElementById('loadingState').classList.add('hidden');
+            }
+
+            showError(message) {
+                document.getElementById('errorText').textContent = message;
+                document.getElementById('errorMessage').classList.remove('hidden');
+            }
+
+            hideError() {
+                document.getElementById('errorMessage').classList.add('hidden');
+            }
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', () => {
+            new WeatherApp();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'968cac5ea704cb77',t:'MTc1NDEyODI1MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
